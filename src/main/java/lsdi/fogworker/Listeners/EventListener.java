@@ -15,22 +15,25 @@ import java.util.Map;
 
 public class EventListener implements UpdateListener {
     RestTemplate restTemplate = new RestTemplate();
-    MqttService mqttService = MqttService.getInstance();
     private final RuleRequestResponse rule;
-    private final String webhookUrl;
+
 
     private final String consumerUrl = System.getenv("CONSUMER_URL");
 
-    public EventListener(RuleRequestResponse rule, String webhookUrl) {
+    MqttService mqttService = MqttService.getInstance();
+
+    public EventListener(RuleRequestResponse rule) {
         this.rule = rule;
-        this.webhookUrl = webhookUrl;
     }
 
     @Override
     public void update(EventBean[] newData, EventBean[] oldEvents, EPStatement statement, EPRuntime runtime) {
         ObjectMapper mapper = new ObjectMapper();
+
         try {
             Map<String, Object> event = mapper.readValue(mapper.writeValueAsString(newData[0].getUnderlying()), Map.class);
+            
+            System.out.println("LOG: Received event: " + event);
             switch(rule.getTarget()) {
                 case "FOG" -> new Thread(() -> {
                     try {
@@ -48,7 +51,7 @@ public class EventListener implements UpdateListener {
                 }).start();
                 case "WEBHOOK" -> new Thread(() -> {
                     Event eventDto = new Event();
-                    eventDto.setWebhookUrl(webhookUrl);
+                    eventDto.setWebhookUrl(rule.getWebhookUrl());
                     eventDto.setEvent(event);
                     restTemplate.postForObject(consumerUrl + "/event", eventDto, Map.class);
                 }).start();

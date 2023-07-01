@@ -24,7 +24,8 @@ public class DeployService {
         for (RuleRequestResponse rule : deployRequest.getRules()) {
             new Thread(() -> {
                 EPStatement epStatement = esperService.getStatement(epDeployment.getDeploymentId(), rule.getName());
-                epStatement.addListener(new EventListener(rule, rule.getWebhookUrl()));
+                epStatement.addListener(new EventListener(rule));
+                System.out.println("INFO: Rule " + rule.getName() + " (" + rule.getDefinition() + ") deployed.");
             }).start();
         }
     }
